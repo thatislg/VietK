@@ -1,6 +1,7 @@
 #include "VietKEngine.h"
 #include <ranges>
 #include <algorithm>
+#include <iostream>
 
 // Bảng ánh xạ dấu thanh cho nguyên âm (precomposed Unicode)
 static const std::map<std::string, std::map<char, std::string>> toneMap = {
@@ -43,35 +44,39 @@ void VietKEngine::toggleVietnameseMode() {
 }
 
 std::string VietKEngine::applyTone(std::string_view word, char tone) {
+    std::cerr << "applyTone: word=" << word << ", tone=" << tone << std::endl;
     if (word.empty()) return "";
 
-    // Tìm ký tự cuối hợp lệ (nguyên âm hoặc tổ hợp)
+    // Lấy nguyên âm cuối
     std::string lastChar;
-    size_t pos = word.size();
-    while (pos > 0) {
-        lastChar = std::string(word.substr(pos - 1, 1));
-        if (toneMap.contains(lastChar)) break;
-        --pos;
+    for (size_t i = word.size(); i > 0; --i) {
+        lastChar = std::string(word.substr(i - 1));
+        if (toneMap.contains(lastChar)) {
+            auto tones = toneMap.at(lastChar);
+            if (tones.contains(tone)) {
+                std::string result = std::string(word.substr(0, i - 1)) + tones.at(tone);
+                std::cerr << "applyTone result: " << result << std::endl;
+                return result;
+            }
+            break;
+        }
     }
-    if (pos == 0) return std::string(word); // Không tìm thấy nguyên âm
-
-    // Áp dụng dấu thanh
-    auto tones = toneMap.at(lastChar);
-    if (tones.contains(tone)) {
-        return std::string(word.substr(0, pos - 1)) + tones.at(tone);
-    }
+    std::cerr << "applyTone: no tone applied, returning " << word << std::endl;
     return std::string(word);
 }
 
 std::expected<std::string, std::string> VietKEngine::processKey(std::string_view key) {
-    if (!isVietnameseMode) return std::string(key);
+    if (!isVietnameseMode) {
+        resetWord();
+        return std::string(key);
+    }
     if (key.empty() || key.size() > 1) return std::unexpected("Invalid key");
 
     char c = key[0];
     if (!std::isalnum(c)) {
-        std::string result = currentWord + c;
         resetWord();
-        return result;
+        std::cerr << "processKey: non-alnum, result=" << "" << std::endl;
+        return "";
     }
 
     currentWord += c;
@@ -79,8 +84,9 @@ std::expected<std::string, std::string> VietKEngine::processKey(std::string_view
     // Kiểm tra quy tắc Telex
     for (const auto& [pattern, replacement] : telexRules) {
         if (currentWord.ends_with(pattern)) {
-            std::string result = currentWord.substr(0, currentWord.size() - pattern.size()) + replacement;
-            currentWord = replacement; // Cập nhật currentWord
+            std::string result = currentWord.substr(0, currentWord.size() - pattern.length()) + replacement;
+            currentWord = result;
+            std::cerr << "processKey: Telex rule applied, result=" << result << std::endl;
             return result;
         }
     }
@@ -88,13 +94,16 @@ std::expected<std::string, std::string> VietKEngine::processKey(std::string_view
     // Kiểm tra dấu thanh
     if (toneRules.contains(c)) {
         std::string result = applyTone(currentWord.substr(0, currentWord.size() - 1), c);
-        currentWord = result; // Cập nhật currentWord
+        currentWord = result;
+        std::cerr << "processKey: Tone applied, result=" << result << std::endl;
         return result;
     }
 
+    std::cerr << "processKey: No rule applied, result=" << currentWord << std::endl;
     return currentWord;
 }
 
 void VietKEngine::resetWord() {
     currentWord.clear();
+    std::cerr << "resetWord: currentWord cleared" << std::endl;
 }
