@@ -5,6 +5,7 @@
 #include "TSFIntegration.h"
 #include <comdef.h>
 #include <string>
+#include <iostream>
 
 TSFIntegration::TSFIntegration() : refCount(1), threadMgr(nullptr), clientId(0) {
     Initialize();
@@ -50,6 +51,14 @@ ULONG TSFIntegration::Release() {
     return newCount;
 }
 
+HRESULT TSFIntegration::AdviseSink(REFIID riid, IUnknown* punk, DWORD dwMask) {
+    return E_NOTIMPL;
+}
+
+HRESULT TSFIntegration::UnadviseSink(IUnknown* punk) {
+    return E_NOTIMPL;
+}
+
 HRESULT TSFIntegration::RequestLock(DWORD dwLockFlags, HRESULT* phrSession) {
     *phrSession = S_OK;
     return S_OK;
@@ -59,6 +68,10 @@ HRESULT TSFIntegration::GetStatus(TS_STATUS* pdcs) {
     pdcs->dwDynamicFlags = 0;
     pdcs->dwStaticFlags = TS_SS_NOHIDDENTEXT;
     return S_OK;
+}
+
+HRESULT TSFIntegration::QueryInsert(LONG acpTestStart, LONG acpTestEnd, ULONG cch, LONG* pacpResultStart, LONG* pacpResultEnd) {
+    return E_NOTIMPL;
 }
 
 HRESULT TSFIntegration::GetText(LONG acpStart, LONG acpEnd, WCHAR* pchText, ULONG cchReq, ULONG* pcch, TS_RUNINFO* prgRunInfo, ULONG cRunInfoReq, ULONG* pcRunInfo, LONG* pacpNext) {
@@ -80,12 +93,54 @@ HRESULT TSFIntegration::SetText(DWORD dwFlags, LONG acpStart, LONG acpEnd, const
     return S_OK;
 }
 
+HRESULT TSFIntegration::GetFormattedText(LONG acpStart, LONG acpEnd, IDataObject** ppDataObject) {
+    return E_NOTIMPL;
+}
+
+HRESULT TSFIntegration::GetEmbedded(LONG acpPos, REFGUID rguidService, REFIID riid, IUnknown** ppunk) {
+    return E_NOTIMPL;
+}
+
+HRESULT TSFIntegration::QueryInsertEmbedded(const GUID* pguidService, const FORMATETC* pFormatEtc, BOOL* pfInsertable) {
+    return E_NOTIMPL;
+}
+
 HRESULT TSFIntegration::InsertTextAtSelection(DWORD dwFlags, const WCHAR* pchText, ULONG cch, LONG* pacpStart, LONG* pacpEnd, TS_TEXTCHANGE* pChange) {
     long start = 0, end = currentText.length();
     SetText(0, start, end, pchText, cch, pChange);
     *pacpStart = start;
     *pacpEnd = start + cch;
     return S_OK;
+}
+
+HRESULT TSFIntegration::InsertEmbeddedAtSelection(DWORD dwFlags, IDataObject* pDataObject, LONG* pacpStart, LONG* pacpEnd, TS_TEXTCHANGE* pChange) {
+    // Không hỗ trợ chèn embedded object
+    return E_NOTIMPL;
+}
+
+HRESULT TSFIntegration::InsertEmbedded(DWORD dwFlags, LONG acpStart, LONG acpEnd, IDataObject* pDataObject, TS_TEXTCHANGE* pChange) {
+    // Không hỗ trợ chèn embedded object
+    return E_NOTIMPL;
+}
+
+HRESULT TSFIntegration::RequestSupportedAttrs(DWORD dwFlags, ULONG cFilterAttrs, const TS_ATTRID* paFilterAttrs) {
+    return E_NOTIMPL;
+}
+
+HRESULT TSFIntegration::RequestAttrsAtPosition(LONG acpPos, ULONG cFilterAttrs, const TS_ATTRID* paFilterAttrs, DWORD dwFlags) {
+    return E_NOTIMPL;
+}
+
+HRESULT TSFIntegration::RequestAttrsTransitioningAtPosition(LONG acpPos, ULONG cFilterAttrs, const TS_ATTRID* paFilterAttrs, DWORD dwFlags) {
+    return E_NOTIMPL;
+}
+
+HRESULT TSFIntegration::FindNextAttrTransition(LONG acpStart, LONG acpHalt, ULONG cFilterAttrs, const TS_ATTRID* paFilterAttrs, DWORD dwFlags, LONG* pacpNext, BOOL* pfFound, LONG* plFoundOffset) {
+    return E_NOTIMPL;
+}
+
+HRESULT TSFIntegration::RetrieveRequestedAttrs(ULONG ulCount, TS_ATTRVAL* paAttrs, ULONG* pcFetched) {
+    return E_NOTIMPL;
 }
 
 HRESULT TSFIntegration::GetEndACP(LONG* pacp) {
@@ -96,6 +151,10 @@ HRESULT TSFIntegration::GetEndACP(LONG* pacp) {
 HRESULT TSFIntegration::GetActiveView(TsViewCookie* pvcView) {
     *pvcView = 1;
     return S_OK;
+}
+
+HRESULT TSFIntegration::GetACPFromPoint(TsViewCookie vcView, const POINT* ptScreen, DWORD dwFlags, LONG* pacp) {
+    return E_NOTIMPL;
 }
 
 HRESULT TSFIntegration::GetTextExt(TsViewCookie vcView, LONG acpStart, LONG acpEnd, RECT* prc, BOOL* pfClipped) {
@@ -150,7 +209,6 @@ HRESULT TSFIntegration::OnEndComposition(ITfCompositionView* pComposition) {
 }
 
 HRESULT TSFIntegration::ProcessKey(WCHAR key) {
-    // Chuyển WCHAR (UTF-16) sang UTF-8
     char utf8Key[4] = {0};
     int size = WideCharToMultiByte(CP_UTF8, 0, &key, 1, utf8Key, sizeof(utf8Key), nullptr, nullptr);
     if (size == 0) return E_FAIL;
@@ -160,7 +218,6 @@ HRESULT TSFIntegration::ProcessKey(WCHAR key) {
     auto result = engine.processKey(utf8Key);
     if (!result) return E_FAIL;
 
-    // Chuyển std::string (UTF-8) sang std::wstring (UTF-16)
     wchar_t wResult[4] = {0};
     size = MultiByteToWideChar(CP_UTF8, 0, result->c_str(), -1, wResult, sizeof(wResult) / sizeof(wchar_t));
     if (size == 0) return E_FAIL;

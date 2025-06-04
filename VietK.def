@@ -1,0 +1,6 @@
+LIBRARY VietK
+EXPORTS
+    DllGetClassObject
+    DllCanUnloadNow
+    DllRegisterServer
+    DllUnregisterServer

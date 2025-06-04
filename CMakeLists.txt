@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(VietK)
+project(VietK CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -15,18 +15,20 @@ endif()
 set(WIN_SDK_VERSION "10.0.22621.0") # Thay bằng phiên bản SDK của bạn
 set(WIN_SDK_PATH "C:/Program Files (x86)/Windows Kits/10")
 
-
-# Thêm executable
-add_executable(VietK
-        src/main.cpp
-        src/VietKEngine.h
+add_library(VietK SHARED
         src/VietKEngine.cpp
+        src/VietKEngine.h
         src/TSFIntegration.cpp
         src/TSFIntegration.h
+        src/dllmain.cpp
 )
 
-# Liên kết thư viện Windows cho TSF
 target_link_libraries(VietK PRIVATE ole32 uuid)
 
-# Đảm bảo Unicode
-add_definitions(-DUNICODE -D_UNICODE)
+target_compile_definitions(VietK PRIVATE UNICODE _UNICODE)
+
+set_target_properties(VietK PROPERTIES
+        OUTPUT_NAME "VietK"
+        PREFIX ""
+        LINK_FLAGS "-Wl,--output-def,VietK.def"
+)
